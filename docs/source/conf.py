@@ -34,3 +34,4 @@ html_theme = 'sphinx_wagtail_theme'
 
 html_static_path = ['_static']
 html_css_files = ["custom.css"]
+html_show_sphinx = False
