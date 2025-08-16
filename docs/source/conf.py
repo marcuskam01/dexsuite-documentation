@@ -36,6 +36,9 @@ html_static_path = ['_static']
 html_css_files = ["custom.css"]
 html_show_sphinx = False
 html_theme_options = dict(
+    github_url = "https://github.com/marcuskam01/dexsuite-documentation/tree/main/docs"
+)
+html_theme_options = dict(
     footer_links = ",".join([
         "About Us|https://www.mcgill.ca/cim/",
         "Repository|https://github.com/anashoussaini/Dexsuite"
