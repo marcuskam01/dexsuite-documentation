@@ -35,3 +35,9 @@ html_theme = 'sphinx_wagtail_theme'
 html_static_path = ['_static']
 html_css_files = ["custom.css"]
 html_show_sphinx = False
+html_theme_options = dict(
+    footer_links = ",".join([
+        "About Us|https://www.mcgill.ca/cim/",
+        "Repository|https://github.com/anashoussaini/Dexsuite"
+    ]),
+ )
