@@ -1,3 +1,11 @@
 :root {
-    --primary: #305CDE !important;
+  --my-primary: #305CDE; /* <- change this to your color */
+  /* Font Awesome layered icon colours */
+  --fa-primary-color: var(--my-primary);
+}
+
+.wy-nav-top,
+.header,
+.header .navbar {
+  background-color: var(--my-primary) !important;
 }
