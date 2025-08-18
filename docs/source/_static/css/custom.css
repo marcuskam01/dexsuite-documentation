@@ -1,0 +1,261 @@
+/* Custom CSS to replace purple colors with #305CDE in both light and dark modes */
+
+/* Header/Navigation Bar - targeting parent containers and all possible elements */
+.header,
+.navbar,
+.navbar-brand,
+.site-header,
+.main-header,
+.top-bar,
+nav.navbar,
+.navbar-default,
+.navbar-inverse,
+.bd-navbar,
+.bd-header,
+.navbar-container,
+.header-container,
+.site-header-container,
+.navbar-wrapper,
+.header-wrapper,
+.navigation,
+.nav-wrapper,
+.top-navigation,
+.primary-navigation,
+body > header,
+#header,
+#navbar,
+#site-header,
+.page-header,
+.document-header,
+.sphinx-header,
+.theme-header {
+    background-color: #305CDE !important;
+    border-color: #305CDE !important;
+}
+
+/* Target any element with purple background colors commonly used in Sphinx themes */
+[style*="background-color: #663399"],
+[style*="background-color: #6f42c1"],
+[style*="background-color: #7952b3"],
+[style*="background-color: purple"],
+[style*="background: #663399"],
+[style*="background: #6f42c1"],
+[style*="background: #7952b3"],
+[style*="background: purple"] {
+    background-color: #305CDE !important;
+    background: #305CDE !important;
+}
+
+/* Header links and text */
+.header a,
+.navbar a,
+.navbar-brand a,
+.site-header a,
+.main-header a,
+.top-bar a,
+nav.navbar a,
+.navbar-default a,
+.navbar-inverse a,
+.bd-navbar a,
+.bd-header a {
+    color: white !important;
+}
+
+/* Header hover states */
+.header a:hover,
+.navbar a:hover,
+.navbar-brand a:hover,
+.site-header a:hover,
+.main-header a:hover,
+.top-bar a:hover,
+nav.navbar a:hover,
+.navbar-default a:hover,
+.navbar-inverse a:hover,
+.bd-navbar a:hover,
+.bd-header a:hover {
+    color: #f0f0f0 !important;
+}
+
+/* Footer - targeting parent containers and all possible elements */
+.footer,
+.site-footer,
+.main-footer,
+.bottom-bar,
+footer,
+.bd-footer,
+.footer-container,
+.site-footer-container,
+.footer-wrapper,
+.bottom-footer,
+.page-footer,
+.document-footer,
+.sphinx-footer,
+.theme-footer,
+body > footer,
+#footer,
+#site-footer,
+.footer-content,
+.footer-inner,
+.footer-main,
+.primary-footer,
+.secondary-footer {
+    background-color: #305CDE !important;
+    border-color: #305CDE !important;
+}
+
+/* Footer links and text */
+.footer,
+.footer a,
+.site-footer,
+.site-footer a,
+.main-footer,
+.main-footer a,
+.bottom-bar,
+.bottom-bar a,
+footer,
+footer a,
+.bd-footer,
+.bd-footer a {
+    color: white !important;
+}
+
+/* Footer hover states */
+.footer a:hover,
+.site-footer a:hover,
+.main-footer a:hover,
+.bottom-bar a:hover,
+footer a:hover,
+.bd-footer a:hover {
+    color: #f0f0f0 !important;
+}
+
+/* Wagtail theme specific selectors */
+.wagtail-header,
+.wagtail-footer {
+    background-color: #305CDE !important;
+}
+
+.wagtail-header a,
+.wagtail-footer a {
+    color: white !important;
+}
+
+.wagtail-header a:hover,
+.wagtail-footer a:hover {
+    color: #f0f0f0 !important;
+}
+
+/* Dark mode compatibility - ensure the color applies in dark mode as well */
+@media (prefers-color-scheme: dark) {
+    .header,
+    .navbar,
+    .navbar-brand,
+    .site-header,
+    .main-header,
+    .top-bar,
+    nav.navbar,
+    .navbar-default,
+    .navbar-inverse,
+    .bd-navbar,
+    .bd-header,
+    .footer,
+    .site-footer,
+    .main-footer,
+    .bottom-bar,
+    footer,
+    .bd-footer,
+    .wagtail-header,
+    .wagtail-footer {
+        background-color: #305CDE !important;
+        border-color: #305CDE !important;
+    }
+}
+
+/* Additional selectors for common Sphinx theme elements */
+.wy-nav-top,
+.rst-versions,
+.ethical-sidebar,
+.ethical-footer {
+    background-color: #305CDE !important;
+}
+
+.wy-nav-top a,
+.rst-versions a,
+.ethical-sidebar a,
+.ethical-footer a {
+    color: white !important;
+}
+
+/* Ensure buttons and interactive elements in header/footer use the new color */
+.btn-primary,
+.navbar .btn-primary,
+.footer .btn-primary {
+    background-color: #305CDE !important;
+    border-color: #305CDE !important;
+}
+
+.btn-primary:hover,
+.navbar .btn-primary:hover,
+.footer .btn-primary:hover {
+    background-color: #2548b8 !important;
+    border-color: #2548b8 !important;
+}
+
+/* Universal selectors to catch any remaining purple elements */
+/* Target common purple hex codes used in Sphinx themes */
+*[style*="#663399"],
+*[style*="#6f42c1"],
+*[style*="#7952b3"],
+*[style*="#8e44ad"],
+*[style*="#9b59b6"],
+*[class*="purple"],
+*[class*="violet"] {
+    background-color: #305CDE !important;
+}
+
+/* Body and html level overrides for themes that set purple at the root */
+body, html {
+    --primary-color: #305CDE !important;
+    --header-color: #305CDE !important;
+    --footer-color: #305CDE !important;
+    --nav-color: #305CDE !important;
+    --brand-color: #305CDE !important;
+}
+
+/* CSS custom properties override for modern themes */
+:root {
+    --primary-color: #305CDE !important;
+    --header-color: #305CDE !important;
+    --footer-color: #305CDE !important;
+    --nav-color: #305CDE !important;
+    --brand-color: #305CDE !important;
+    --theme-color: #305CDE !important;
+    --accent-color: #305CDE !important;
+}
+
+/* Wagtail theme specific CSS variables */
+:root {
+    --wagtail-color-primary: #305CDE !important;
+    --wagtail-color-primary-hue: 225 !important;
+    --wagtail-color-primary-saturation: 73% !important;
+    --wagtail-color-primary-lightness: 57% !important;
+}
+
+/* More aggressive targeting for stubborn elements */
+div[style*="background"],
+section[style*="background"],
+header[style*="background"],
+footer[style*="background"],
+nav[style*="background"] {
+    background-color: #305CDE !important;
+}
+
+/* Target any element that might have purple in its computed style */
+.bg-primary,
+.bg-purple,
+.bg-violet,
+.primary-bg,
+.purple-bg,
+.violet-bg {
+    background-color: #305CDE !important;
+}
