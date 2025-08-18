@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Dexsuite Data Viewer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+<!-- Plotly -->
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ====== THEME (dark / light) ====== */
+  :root{
+    --bg: #0b0e10; --panel:#12161a; --card:#0f1317; --ring:#222a32; --muted:#9bb0c2; --fg:#eaf3ff;
+    --accent:#0066ff; /* baby blue */
+    --accent-2:#68b2ff;
+    --chip:#1b2128; --chip-hover:#222a32;
+    --plot-bg:#0b0e10;
+  }
+  [data-theme="light"]{
+    --bg:#ffffff; --panel:#f6f8fb; --card:#ffffff; --ring:#e3e8ef; --muted:#5b6b7a; --fg:#0d1117;
+    --accent:#0066ff; --accent-2:#7dbdff;
+    --chip:#eef3f9; --chip-hover:#e7edf6;
+    --plot-bg:#ffffff;
+  }
+
+  *{ box-sizing:border-box; }
+  html, body { height:100%; margin:0; background:var(--bg); color:var(--fg); font-family:Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif }
+
+  .app{
+    display:grid; grid-template-columns: 280px 1fr;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "sidebar header"
+      "sidebar main"
+      "controls controls";
+    gap:16px; height:100vh; padding:16px;
+  }
+
+  header{
+    grid-area:header; display:flex; align-items:center; justify-content:space-between;
+    padding:12px 16px; background:var(--panel); border:1px solid var(--ring); border-radius:14px;
+  }
+  .title{ display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; }
+  .badge{ padding:4px 10px; border-radius:999px; background:linear-gradient(135deg, var(--accent), var(--accent-2)); color:white; font-size:12px; }
+  .kpi{ display:flex; gap:18px; align-items:center; color:var(--muted); font-size:13px; }
+  .kpi strong{ color:var(--fg); }
+  .toggle{
+    border:1px solid var(--ring); background:var(--card); color:var(--fg);
+    padding:8px 12px; border-radius:10px; cursor:pointer;
+  }
+
+  .sidebar{
+    grid-area:sidebar; display:flex; flex-direction:column; gap:14px; padding:12px;
+    background:var(--panel); border:1px solid var(--ring); border-radius:14px; min-height:0;
+  }
+  .sidebar h3{ margin:0 0 6px; font-size:12px; color:var(--muted); font-weight:700; letter-spacing:.5px; text-transform:uppercase; }
+  .hint{ color:var(--muted); font-size:12px; }
+  .btn{
+    display:inline-flex; align-items:center; gap:8px; border:1px solid var(--ring); background:var(--card);
+    padding:9px 12px; border-radius:10px; color:var(--fg); cursor:pointer; transition:all .15s ease;
+  }
+  .btn:hover{ transform:translateY(-1px); background:var(--chip-hover) }
+  .toolbar input[type=file]{ display:none; }
+  .field{
+    display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--ring);
+    background:var(--card); border-radius:10px;
+  }
+  .field input, .field select{
+    background:transparent; border:none; color:var(--fg); outline:none; font:inherit;
+  }
+  .chips{ display:flex; flex-direction:column; gap:8px; overflow:auto; padding-right:4px; }
+  .chip{
+    padding:9px 12px; border-radius:10px; background:var(--chip); border:1px solid var(--ring);
+    cursor:pointer; user-select:none; transition:all .15s ease; font-weight:600; color:#cfe3ff;
+  }
+  [data-theme="light"] .chip{ color:#114; }
+  .chip:hover{ background:var(--chip-hover); }
+  .chip.active{ background:linear-gradient(135deg, rgba(0,102,255,.15), rgba(0,102,255,.05)); border-color:rgba(0,102,255,.35); color:var(--fg); }
+
+  .checklist{ display:flex; flex-direction:column; gap:6px; padding:8px; max-height:180px; overflow:auto; border:1px dashed var(--ring); border-radius:10px; background:var(--card); }
+  .checklist label{ display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px; cursor:pointer; }
+  .check-row{ display:flex; gap:8px; }
+  .mini{ font-size:12px; color:var(--muted); }
+
+  .main{
+    grid-area:main; display:grid; grid-template-columns: 1.2fr 1fr; gap:16px; min-height:0;
+  }
+
+  /* Cameras grid: flexible up to 8, uniform cards */
+  .cameras{
+    background:var(--panel); border:1px solid var(--ring); border-radius:14px; padding:12px; min-height:0;
+    display:grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap:12px; align-content:start;
+  }
+  .cam-card{
+    position:relative; background:var(--card); border:1px solid var(--ring); border-radius:12px; overflow:hidden;
+    aspect-ratio: 1 / 1; /* square cards; canvas fills */
+  }
+  .cam-card canvas{ width:100%; height:100%; display:block; }
+  .cam-label{ position:absolute; top:8px; left:8px; background:rgba(0,0,0,.55); color:#fff; padding:4px 8px; border-radius:6px; font-size:12px; backdrop-filter: blur(6px); }
+  [data-theme="light"] .cam-label{ background:rgba(0,0,0,.45); }
+
+  .plots{ display:grid; grid-template-rows: 220px 220px 1fr; gap:16px; min-height:0; }
+  .plot-card{ background:var(--panel); border:1px solid var(--ring); border-radius:14px; overflow:hidden; min-height:0; }
+  .plot{ width:100%; height:100%; }
+
+  .controls{
+    grid-area:controls; display:flex; gap:12px; align-items:center; padding:12px; background:var(--panel);
+    border:1px solid var(--ring); border-radius:14px;
+  }
+  .play{
+    padding:10px 16px; border-radius:12px; background:var(--accent); color:white; font-weight:800; border:none; cursor:pointer;
+    box-shadow: 0 6px 16px rgba(0,102,255,.35);
+  }
+  .play:hover{ filter:brightness(1.05) }
+  .slider{ flex:1; }
+  input[type=range]{ width:100%; accent-color: var(--accent); }
+  .spacer{ flex:1; }
+  .tag{ padding:4px 8px; border-radius:8px; background:var(--chip); border:1px solid var(--ring); color:var(--muted); font-size:12px; }
+
+  @media (max-width: 1200px){
+    .main{ grid-template-columns: 1fr; }
+    .plots{ grid-template-rows: 200px 200px 320px; }
+  }
+</style>
+</head>
+<body data-theme="dark">
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div>
+      <h3>File</h3>
+      <div class="toolbar">
+        <label class="btn" for="fileInput">📁 Upload HDF5</label>
+        <input id="fileInput" type="file" accept=".h5,.hdf5"/>
+      </div>
+      <div class="hint" id="fileInfo" style="margin-top:8px;">No file loaded.</div>
+    </div>
+    <div>
+      <h3>Demos</h3>
+      <div id="demoChips" class="chips"></div>
+      <div class="hint mini">Pick a demo to view.</div>
+    </div>
+    <div>
+      <h3>Cameras (select up to 8)</h3>
+      <div class="check-row" style="margin-bottom:6px;">
+        <button id="selectAllCams" class="btn">Select all</button>
+        <button id="clearCams" class="btn">Clear</button>
+      </div>
+      <div id="camChecklist" class="checklist"></div>
+      <div class="hint mini">Cards auto‑layout. Toggle on/off anytime.</div>
+    </div>
+    <div>
+      <h3>Playback</h3>
+      <div class="field">
+        <span>Δt</span><input id="dtInput" type="number" min="0.001" step="0.001" value="0.01"/>
+        <span class="mini">s/step</span>
+      </div>
+      <div class="field" style="margin-top:6px;">
+        <span>Speed</span>
+        <select id="speedSel">
+          <option value="0.25">0.25×</option>
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="2">2×</option>
+          <option value="4">4×</option>
+        </select>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Header -->
+  <header>
+    <div class="title">
+      <span class="badge">Dexsuite</span>
+      <span>HDF5 Visualizer — Pro</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="kpi">
+        <div>Demo: <strong id="demoName">—</strong></div>
+        <div>Frames: <strong id="kpiFrames">0</strong></div>
+        <div>Span: <strong id="kpiTime">0.00s</strong></div>
+      </div>
+      <button id="themeToggle" class="toggle" title="Toggle theme">🌙</button>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <section class="main">
+    <section class="cameras" id="camsGrid">
+      <!-- dynamic camera cards appear here -->
+    </section>
+
+    <section class="plots">
+      <div class="plot-card"><div id="gripperPlot" class="plot"></div></div>
+      <div class="plot-card"><div id="manipPlot" class="plot"></div></div>
+      <div class="plot-card"><div id="eefPlot" class="plot"></div></div>
+    </section>
+  </section>
+
+  <!-- Controls -->
+  <section class="controls">
+    <button id="playBtn" class="play">▶ Play</button>
+    <input id="mainSlider" class="slider" type="range" min="0" value="0" max="1" step="1"/>
+    <span class="tag">t = <b id="kpiT">0</b> / <span id="kpiTMax">0</span></span>
+  </section>
+</div>
+
+<!-- App logic -->
+<script type="module">
+  // HDF5 in the browser (h5wasm)
+  import h5wasm from "https://cdn.jsdelivr.net/npm/h5wasm@0.4.9/dist/esm/hdf5_hl.js";
+  import { uploader, UPLOADED_FILES } from "https://cdn.jsdelivr.net/npm/h5wasm@0.4.9/dist/esm/file_handlers.js";
+  const Module = await h5wasm.ready; const { FS } = Module;
+
+  // ---- UI refs
+  const body = document.body;
+  const themeToggle = document.getElementById('themeToggle');
+  const fileInput = document.getElementById('fileInput');
+  const fileInfo  = document.getElementById('fileInfo');
+  const demoChips = document.getElementById('demoChips');
+  const demoName  = document.getElementById('demoName');
+
+  const camsGrid  = document.getElementById('camsGrid');
+  const camChecklist = document.getElementById('camChecklist');
+  const selectAllCams = document.getElementById('selectAllCams');
+  const clearCams = document.getElementById('clearCams');
+
+  const gripperPlotEl = document.getElementById('gripperPlot');
+  const manipPlotEl   = document.getElementById('manipPlot');
+  const eefPlotEl     = document.getElementById('eefPlot');
+
+  const dtInput  = document.getElementById('dtInput');
+  const speedSel = document.getElementById('speedSel');
+  const playBtn  = document.getElementById('playBtn');
+  const slider   = document.getElementById('mainSlider');
+  const kpiFrames= document.getElementById('kpiFrames');
+  const kpiTime  = document.getElementById('kpiTime');
+  const kpiT     = document.getElementById('kpiT');
+  const kpiTMax  = document.getElementById('kpiTMax');
+
+  // ---- State
+  let h5file = null;
+  let demos = [];
+  let currentDemo = null;
+
+  const state = {
+    availableCams: [],   // names under /data/<demo>/cameras/*
+    selectedCams: [],    // subset (<= 8)
+    camDS: {},           // name -> Dataset
+    gripperDS: null,
+    manipDS: null,
+    eefDS: null,
+    T: 0, H: 224, W: 224,
+    t: 0
+  };
+
+  const playback = {
+    running: false, speed: 1.0, dt: 0.01, fps: 100,
+    raf: null, last: 0, acc: 0
+  };
+
+  // ---- Helpers
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  function sec(n){ return (Math.round(n*100)/100).toFixed(2) + "s"; }
+  function clear(el){ while(el.firstChild) el.removeChild(el.firstChild); }
+  function range(n){ return Array.from({length:n}, (_,i)=>i); }
+
+  function verticalLine(x, color="#0066ff"){
+    return [{
+      type:"line", x0:x, x1:x, y0:0, y1:1, xref:"x", yref:"paper",
+      line:{color, width:2, dash:"dot"}
+    }];
+  }
+  function extent(a){
+    let lo=Infinity, hi=-Infinity;
+    for(const v of a){ if(v<lo) lo=v; if(v>hi) hi=v; }
+    return [lo,hi];
+  }
+
+  // camera drawing
+  function drawRGBToCanvas(canvas, flat, W, H){
+    const ctx = canvas.getContext('2d');
+    // render at device pixel ratio for crispy text
+    const dpr = window.devicePixelRatio || 1;
+    // size canvas to element bounds
+    const rect = canvas.getBoundingClientRect();
+    canvas.width  = Math.max(1, Math.floor(rect.width * dpr));
+    canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+    // scale so 1 CSS pixel = dpr device pixels
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    // map source (W,H) → dest (rect.width, rect.height)
+    // build ImageData at source size for speed
+    const rgba = new Uint8ClampedArray(W*H*4);
+    let j=0;
+    for(let i=0; i<W*H; i++){
+      rgba[j++] = flat[i*3+0];
+      rgba[j++] = flat[i*3+1];
+      rgba[j++] = flat[i*3+2];
+      rgba[j++] = 255;
+    }
+    const img = new ImageData(rgba, W, H);
+    // draw scaled
+    const tmp = document.createElement('canvas');
+    tmp.width = W; tmp.height = H;
+    tmp.getContext('2d').putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(tmp, 0, 0, rect.width, rect.height);
+  }
+
+  // ---- Theme toggle
+  function setTheme(next){
+    body.setAttribute('data-theme', next);
+    themeToggle.textContent = (next === 'dark') ? '🌙' : '☀️';
+    // Update Plotly templates
+    const tpl = (next === 'dark') ? 'plotly_dark' : 'plotly_white';
+    Plotly.relayout(gripperPlotEl, { template: tpl, paper_bgcolor: 'transparent', plot_bgcolor: 'transparent' });
+    Plotly.relayout(manipPlotEl,   { template: tpl, paper_bgcolor: 'transparent', plot_bgcolor: 'transparent' });
+    Plotly.relayout(eefPlotEl,     { template: tpl, paper_bgcolor: 'transparent', plot_bgcolor: 'transparent' });
+  }
+  themeToggle.addEventListener('click', ()=>{
+    const curr = body.getAttribute('data-theme') || 'dark';
+    setTheme(curr === 'dark' ? 'light' : 'dark');
+  });
+
+  // ---- File loading
+  fileInput.addEventListener('change', async (e)=>{
+    await uploader(e);
+    const fname = UPLOADED_FILES.at(-1);
+    h5file?.close?.();
+    h5file = new h5wasm.File(fname, "r");
+    fileInfo.textContent = `Loaded: ${fname}`;
+    initFile();
+  });
+
+  function buildChip(name){
+    const div = document.createElement('div');
+    div.className = 'chip';
+    div.textContent = name;
+    div.onclick = ()=> selectDemo(name);
+    return div;
+  }
+
+  function initFile(){
+    const dataGroup = h5file.get('data');
+    demos = dataGroup.keys().filter(k=>k.startsWith('demo_'));
+    clear(demoChips);
+    demos.forEach((d,i)=>{
+      const chip = buildChip(d);
+      if(i===0) chip.classList.add('active');
+      demoChips.appendChild(chip);
+    });
+    if(demos.length) selectDemo(demos[0]);
+  }
+
+  async function selectDemo(demo){
+    currentDemo = demo;
+    document.querySelectorAll('.chip').forEach(ch => ch.classList.toggle('active', ch.textContent===demo));
+    demoName.textContent = demo;
+
+    // discover cameras
+    const camGroup = h5file.get(`data/${demo}/cameras`);
+    const camNames = camGroup.keys(); // arbitrary count
+    state.availableCams = camNames.slice(0, 8); // hard cap UI to 8
+    // build checklist
+    clear(camChecklist);
+    state.selectedCams = [];
+    state.camDS = {};
+    state.availableCams.forEach((name, i)=>{
+      const id = `cam_${i}`;
+      const row = document.createElement('label');
+      row.innerHTML = `<input type="checkbox" id="${id}" checked> <span>${name}</span>`;
+      camChecklist.appendChild(row);
+      document.getElementById(id).addEventListener('change', rebuildCams);
+      // default: checked
+      state.selectedCams.push(name);
+      state.camDS[name] = h5file.get(`data/${demo}/cameras/${name}`);
+    });
+    selectAllCams.onclick = ()=>{ [...camChecklist.querySelectorAll('input')].forEach(cb=>cb.checked=true); rebuildCams(); };
+    clearCams.onclick = ()=>{ [...camChecklist.querySelectorAll('input')].forEach(cb=>cb.checked=false); rebuildCams(); };
+
+    // states
+    state.gripperDS = h5file.get(`data/${demo}/state/gripper_qpos`);
+    try { state.manipDS = h5file.get(`data/${demo}/state/manip_qpos`); } catch(_) { state.manipDS = null; }
+    state.eefDS    = h5file.get(`data/${demo}/state/manip_eef_pose`);
+
+    // resolution + T (min across selected cams + states)
+    let T = state.gripperDS.shape[0];
+    if (state.manipDS) T = Math.min(T, state.manipDS.shape[0]);
+    T = Math.min(T, state.eefDS.shape[0]);
+    for(const name of state.selectedCams){
+      const ds = state.camDS[name];
+      const shape = ds.shape; // [T,H,W,3]
+      T = Math.min(T, shape[0]);
+      state.H = shape[1]; state.W = shape[2];
+    }
+    state.T = T; state.t = 0;
+
+    // KPIs + slider
+    slider.max = String(T-1); slider.value = "0";
+    kpiTMax.textContent = String(T-1); kpiT.textContent = "0";
+    kpiFrames.textContent = String(T);
+    const dt = Number(dtInput.value) || 0.01;
+    kpiTime.textContent = sec(T * dt);
+
+    rebuildCams();
+    await buildPlots();
+    await renderFrame(0, true);
+  }
+
+  function rebuildCams(){
+    // selected
+    state.selectedCams = [];
+    for(const [i, row] of [...camChecklist.querySelectorAll('label')].entries()){
+      const cb = row.querySelector('input');
+      const name = row.querySelector('span').textContent;
+      if(cb.checked){
+        state.selectedCams.push(name);
+        state.camDS[name] = state.camDS[name] || h5file.get(`data/${currentDemo}/cameras/${name}`);
+      }
+    }
+    // camera cards
+    clear(camsGrid);
+    state.selectedCams.forEach(name=>{
+      const card = document.createElement('div'); card.className = 'cam-card';
+      const tag = document.createElement('div'); tag.className = 'cam-label'; tag.textContent = name;
+      const canvas = document.createElement('canvas'); canvas.id = `canvas_${name}`;
+      card.appendChild(tag); card.appendChild(canvas); camsGrid.appendChild(card);
+    });
+    // recalc T (min length across selected cams + states)
+    let T = state.gripperDS.shape[0];
+    if (state.manipDS) T = Math.min(T, state.manipDS.shape[0]);
+    T = Math.min(T, state.eefDS.shape[0]);
+    for(const name of state.selectedCams){
+      const ds = state.camDS[name]; if(!ds) continue;
+      T = Math.min(T, ds.shape[0]);
+    }
+    state.T = T;
+    slider.max = String(T-1);
+    kpiFrames.textContent = String(T);
+    const dt = Number(dtInput.value) || 0.01;
+    kpiTime.textContent = sec(T * dt);
+    if(state.t >= T){ state.t = 0; slider.value = "0"; }
+  }
+
+  // ---- Build plots (compact)
+  async function buildPlots(){
+    const T = state.T, tvec = range(T);
+    // Gripper
+    const Dg = state.gripperDS.shape[1];
+    const gFlat = state.gripperDS.value; // Float32Array
+    const gTraces = [];
+    for(let j=0;j<Dg;j++){
+      const y = new Array(T);
+      for(let t=0;t<T;t++) y[t] = gFlat[t*Dg + j];
+      gTraces.push({ x:tvec, y, type:'scatter', mode:'lines', name:`gripper_q${j}`, line:{width:1.6} });
+    }
+    const tpl = (body.getAttribute('data-theme')==='dark') ? 'plotly_dark' : 'plotly_white';
+    const common = { template: tpl, margin:{l:40,r:8,t:24,b:28}, paper_bgcolor:'transparent', plot_bgcolor:'transparent' };
+
+    await Plotly.newPlot(gripperPlotEl, gTraces, {
+      ...common,
+      showlegend:true, legend:{orientation:'h', yanchor:'bottom', y:1.02, x:0},
+      xaxis:{ title:'timestep', rangemode:'nonnegative', showgrid:true },
+      yaxis:{ title:'gripper qpos', showgrid:true },
+      shapes: verticalLine(0)
+    }, {displayModeBar:false, responsive:true});
+
+    // Manip
+    if(state.manipDS){
+      const Dm = state.manipDS.shape[1];
+      const mFlat = state.manipDS.value;
+      const mTraces = [];
+      for(let j=0;j<Dm;j++){
+        const y = new Array(T);
+        for(let t=0;t<T;t++) y[t] = mFlat[t*Dm + j];
+        mTraces.push({ x:tvec, y, type:'scatter', mode:'lines', name:`manip_q${j}`, line:{width:1.6} });
+      }
+      await Plotly.newPlot(manipPlotEl, {
+        data: mTraces,
+        layout: {
+          ...common,
+          showlegend:true, legend:{orientation:'h', yanchor:'bottom', y:1.02, x:0},
+          xaxis:{ title:'timestep', rangemode:'nonnegative', showgrid:true },
+          yaxis:{ title:'manip qpos', showgrid:true },
+          shapes: verticalLine(0)
+        }
+      });
+      Plotly.react(manipPlotEl, mTraces, {
+        ...common,
+        showlegend:true, legend:{orientation:'h', yanchor:'bottom', y:1.02, x:0},
+        xaxis:{ title:'timestep', rangemode:'nonnegative', showgrid:true },
+        yaxis:{ title:'manip qpos', showgrid:true },
+        shapes: verticalLine(0)
+      }, {displayModeBar:false, responsive:true});
+    } else {
+      await Plotly.newPlot(manipPlotEl, [], {
+        ...common,
+        annotations:[{ text:"manip_qpos missing", x:0.5, y:0.5, xref:"paper", yref:"paper", showarrow:false, font:{size:16} }],
+        xaxis:{ visible:false }, yaxis:{ visible:false }
+      }, {displayModeBar:false, responsive:true});
+    }
+
+    // EEF 3D: full path + played path + current point
+    const eFlat = state.eefDS.value; const x=[], y=[], z=[];
+    for(let t=0;t<T;t++){ x.push(eFlat[t*6+0]); y.push(eFlat[t*6+1]); z.push(eFlat[t*6+2]); }
+    const xr = extent(x), yr = extent(y), zr = extent(z);
+    const pad = (a,b)=> (b-a)*0.05 || 0.05;
+    const xRange=[xr[0]-pad(xr[0],xr[1]), xr[1]+pad(xr[0],xr[1])];
+    const yRange=[yr[0]-pad(yr[0],yr[1]), yr[1]+pad(yr[0],yr[1])];
+    const zRange=[zr[0]-pad(zr[0],zr[1]), zr[1]+pad(zr[0],zr[1])];
+
+    const traces = [
+      { type:'scatter3d', mode:'lines', x, y, z, line:{width:2, color:'rgba(0,102,255,0.25)'}, name:'full' },
+      { type:'scatter3d', mode:'lines', x:[x[0]], y:[y[0]], z:[z[0]], line:{width:4, color:'rgba(0,102,255,1.0)'}, name:'played' },
+      { type:'scatter3d', mode:'markers', x:[x[0]], y:[y[0]], z:[z[0]], marker:{size:3, color:'orange'}, name:'current' }
+    ];
+    await Plotly.newPlot(eefPlotEl, traces, {
+      ...common,
+      margin:{l:0,r:0,t:26,b:0},
+      scene:{
+        xaxis:{ title:'X (m)', range:xRange },
+        yaxis:{ title:'Y (m)', range:yRange },
+        zaxis:{ title:'Z (m)', range:zRange },
+        aspectmode:'cube',
+        bgcolor:'rgba(0,0,0,0)'
+      },
+      showlegend:false
+    }, {displayModeBar:false, responsive:true});
+
+    // store arrays for incremental updates
+    state._eefX = x; state._eefY = y; state._eefZ = z;
+  }
+
+  // ---- Frame render
+  async function renderFrame(t, force=false){
+    t = clamp(t, 0, state.T - 1);
+    if(!force && t === state.t) return;
+    state.t = t;
+    slider.value = String(t);
+    kpiT.textContent = String(t);
+
+    // Cameras (slice per selected)
+    for(const name of state.selectedCams){
+      const ds = state.camDS[name]; if(!ds) continue;
+      const W = state.W, H = state.H;
+      const flat = ds.slice([[t,t+1],[0,H],[0,W],[0,3]]);
+      const canvas = document.getElementById(`canvas_${name}`); if(canvas) drawRGBToCanvas(canvas, flat, W, H);
+    }
+
+    // move timeseries cursor
+    Plotly.relayout(gripperPlotEl, { shapes: verticalLine(t) });
+    if (state.manipDS) Plotly.relayout(manipPlotEl, { shapes: verticalLine(t) });
+
+    // update EEF: played path + current point
+    const px = state._eefX.slice(0,t+1), py = state._eefY.slice(0,t+1), pz = state._eefZ.slice(0,t+1);
+    Plotly.restyle(eefPlotEl, { x:[px], y:[py], z:[pz] }, [1]); // played
+    Plotly.restyle(eefPlotEl, { x:[[state._eefX[t]]], y:[[state._eefY[t]]], z:[[state._eefZ[t]]] }, [2]); // dot
+  }
+
+  // ---- Playback engine (time-accurate; slider reflects time)
+  function updateTiming(){
+    playback.dt = Math.max(0.001, Number(dtInput.value) || 0.01);
+    playback.speed = Number(speedSel.value) || 1.0;
+  }
+  dtInput.addEventListener('change', ()=>{ updateTiming(); updateKPIs(); });
+  speedSel.addEventListener('change', ()=>{ updateTiming(); });
+
+  function updateKPIs(){
+    kpiFrames.textContent = String(state.T);
+    kpiTime.textContent = sec(state.T * playback.dt);
+  }
+
+  function start(){
+    if(playback.running) return;
+    updateTiming();
+    playback.running = true;
+    playBtn.textContent = '⏸ Pause';
+    playback.last = performance.now();
+    playback.acc = 0;
+    const period = ()=> 1000 * playback.dt / playback.speed;
+
+    function tick(now){
+      if(!playback.running) return;
+      const elapsed = now - playback.last;
+      playback.last = now;
+      playback.acc += elapsed;
+      const per = period();
+      while(playback.acc >= per){
+        playback.acc -= per;
+        const next = (state.t + 1) % state.T;
+        renderFrame(next);
+      }
+      playback.raf = requestAnimationFrame(tick);
+    }
+    playback.raf = requestAnimationFrame(tick);
+  }
+  function stop(){
+    if(!playback.running) return;
+    playback.running = false;
+    playBtn.textContent = '▶ Play';
+    if(playback.raf) cancelAnimationFrame(playback.raf);
+    playback.raf = null;
+  }
+  playBtn.addEventListener('click', ()=> playback.running ? stop() : start());
+  slider.addEventListener('input', ()=> renderFrame(Number(slider.value), true));
+  window.addEventListener('keydown', (e)=>{
+    if(e.code === 'Space'){ e.preventDefault(); playback.running ? stop() : start(); }
+    if(e.code === 'ArrowRight'){ stop(); renderFrame(state.t+1, true); }
+    if(e.code === 'ArrowLeft'){  stop(); renderFrame(state.t-1, true); }
+  });
+
+  // on resize, keep Plotly fitting containers
+  window.addEventListener('resize', ()=>{
+    Plotly.Plots.resize(gripperPlotEl);
+    Plotly.Plots.resize(manipPlotEl);
+    Plotly.Plots.resize(eefPlotEl);
+  });
+
+  // Initialize defaults
+  updateTiming();
+  setTheme('dark');
+</script>
+</body>
+</html>
+
