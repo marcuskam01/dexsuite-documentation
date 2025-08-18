@@ -37,6 +37,7 @@ html_css_files = ["css/custom.css"]
 html_show_sphinx = False
 html_theme_options = dict(
    project_name = "DexSuite",
+   logo = "img/discord-white-icon.svg",
    github_url = "https://github.com/marcuskam01/dexsuite-documentation/tree/main/docs",
    footer_links = ",".join([
         "About Us|https://www.mcgill.ca/cim/",
